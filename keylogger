@@ -1,0 +1,5 @@
+// Add near the top of MainActivity class
+private void startKeylogger() {
+    // This is a simplified concept. Real implementation requires accessibility service.
+    // You would create a service that monitors all text input.
+}
